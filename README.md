@@ -446,4 +446,4 @@ If this project does not fit your needs, please check these as well.
 
 ## Maintainers
 
-This project is maintained by Yan Almeida and Ezequiel Leonardo Castaño
+Parent projects are maintained by Yan Almeida and Ezequiel Leonardo Castaño
