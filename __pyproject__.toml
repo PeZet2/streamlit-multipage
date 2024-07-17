@@ -13,7 +13,8 @@
     name = "streamlit_multipage"
     authors = [
         {name = "Yan Almeida"}, 
-        {name = "Ezequiel Leonardo Castaño", email = "castanoezequielleonardo@gmail.com"}
+        {name = "Ezequiel Leonardo Castaño", email = "castanoezequielleonardo@gmail.com"},
+        {name = "Paweł Zaremba"}
     ]
     dynamic = ["version"]
     license = { file = "LICENSE" }
@@ -34,8 +35,8 @@
 
 
 [project.urls]
-    Homepage = "https://github.com/ELC/streamlit-multipage"
-    "Bug Tracker" = "https://github.com/ELC/streamlit-multipage/issues"
+    Homepage = "https://github.com/PeZet2/streamlit-multipage"
+    "Bug Tracker" = "https://github.com/PeZet2/streamlit-multipage/issues"
 
 
 

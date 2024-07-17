@@ -1,9 +1,11 @@
 from dataclasses import dataclass, field
-from typing import List, Callable, NamedTuple, ClassVar, Any, Dict, Union
+from typing import List, Callable, NamedTuple, ClassVar, Any, Dict
 from collections import defaultdict
 from pathlib import Path
+import copy
 
 import streamlit as st
+from streamlit.runtime.scriptrunner import add_script_run_ctx
 
 try:
     import joblib
@@ -62,40 +64,54 @@ class StateManager:
 
     def _save(self, data: Dict[str, Any]) -> None:
         self.cache.mkdir(parents=True, exist_ok=True)
-        pickling.dump(data, self.cache_file)
+        pickling.dump(data, open(self.cache_file, 'wb'))
 
     def _load(self) -> Dict[str, Any]:
         if not self.cache_file.exists():
             return defaultdict(dict)
 
-        data = pickling.load(self.cache_file)
+        try:
+            data = pickling.load(open(self.cache_file, 'rb'))
+        except EOFError:
+            return defaultdict(dict)
+
         if "global" in data:
             data.update(data["global"])
 
         return data
+    
+    def load_cache(self) -> Dict[str, Any]:
+        return self._load()
 
-    def clear_cache(
-        self,
-        variables: Dict[str, Any] = None,
-        namespaces: List[str] = None,
-        all_variables: bool = False,
-    ) -> None:
-
-        if not variables or not namespaces:
-            return
-
+    def clear_cache(self, *, 
+                    variables: Dict[str, Any] = None, 
+                    namespaces: List[str] = None, 
+                    all_variables: bool = False) -> None:
+        
         if all_variables:
             self.cache_file.unlink(missing_ok=True)
             return
-
+        
         data = self._load()
-        for namespace in namespaces:
-            for variable in variables:
-                if variable not in data[namespace]:
-                    continue
-
-                del data[namespace][variable]
-
+        temp_data = copy.deepcopy(data)
+        
+        # Delete all variables for given namespace list
+        if namespaces and not variables:
+            for namespace in namespaces:
+                try:
+                    del data[namespace]
+                except KeyError:
+                    ...
+        
+        # Delete given variables from all namespaces
+        elif variables and not namespaces:
+            for namespace in temp_data.keys():
+                for variable in variables:
+                    try:
+                        del data[namespace][variable]
+                    except KeyError:
+                        ...
+        
         self._save(data)
 
 
@@ -162,7 +178,7 @@ class MultiPage:
         page = self.__state_manager._read_page()
 
         if middle_column.button(self.reset_button):
-            self.clear_cache(True, True, True)
+            self.clear_cache(all_variables=True)
             self.change_page(-1)
 
         if left_column.button(self.previous_page_button):
@@ -253,23 +269,17 @@ class MultiPage:
 
         page = self.__state_manager._read_page()
 
-        if page == -1:
-            landing_page = self._render_landing_page()
-
-            if landing_page:
-                return
-
         data = self.__state_manager._load()
 
-        if page >= len(self.__apps):
-            page = -1
+        if page == -1 or page >= len(self.__apps):
+            page = 0
 
         app = self.__apps[page]
 
         if app.name in data:
             data = data[app.name]
 
-        app.func(self.st, **data)
+        app.func()
 
         if self.footer:
             self.footer.func(self.st)
@@ -282,17 +292,19 @@ class MultiPage:
             self._run()
 
     @classmethod
-    def clear_cache(
-        cls,
-        variables: Dict[str, Any] = None,
-        namespaces: List[str] = None,
-        all_variables: bool = False,
-    ) -> None:
-        cls.__state_manager.clear_cache(variables, namespaces, all_variables)
+    def clear_cache(cls, *, 
+                    variables: Dict[str, Any] = None,
+                    namespaces: List[str] = None,
+                    all_variables: bool = False) -> None:
+        cls.__state_manager.clear_cache(variables=variables, namespaces=namespaces, all_variables=all_variables)
 
     @classmethod
     def save(cls, variables: Dict[str, Any], namespaces: List[str] = None) -> None:
         cls.__state_manager.save(variables, namespaces)
+        
+    @classmethod
+    def load_cache(cls) -> Dict[str, Any]:
+        return cls.__state_manager.load_cache()
 
     @classmethod
     def change_page(cls, page: int) -> None:
