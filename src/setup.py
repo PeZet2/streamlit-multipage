@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="streamlit_multipage",
-    version="0.0.21",
+    version="0.0.22",
     description="A small package that allows you to create multi page streamlit apps",
     packages=['streamlit_multipage'],
     python_requires=">=3.6",
